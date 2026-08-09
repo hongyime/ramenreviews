@@ -81,8 +81,4 @@ curl -X PUT http://127.0.0.1:5000/api/searchsome \
 
 ## License
 
-MIT License
-
----
-
-**Author:** <a href="https://github.com/hongyime">hongyime</a>
+Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
