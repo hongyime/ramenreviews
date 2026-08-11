@@ -1,5 +1,10 @@
 # Rave Ramen Reviews 🍜
 
+Live demo: https://hongyime.github.io/ramenreviews/
+
+![Project screenshot](./screenshot.png)
+
+
 A RESTful API for managing and querying ramen reviews built with Python and Flask
 
 ## Description
