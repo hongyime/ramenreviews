@@ -38,8 +38,9 @@ Responses are JSON objects with `items`, `limit`, `offset`, `has_more` and
 `next_offset`. Default pages contain at most 50 records; the maximum is 200.
 Offsets are limited to 100000. Fetch pages on demand; concurrent writes can move
 records between pages. Filter by `ID`, `Country`, `Brand`, `Type`, `Package` or
-`Rating`. `keyword` searches literal text within Type. Filters ignore ASCII letter
-case; values retain their original text. Sorting uses the stored text and row
+`Rating`. ID and Rating values match exactly. Descriptive text and literal
+`keyword` searches within Type use Unicode case-insensitive matching. Values
+retain their original text. Sorting uses the stored text and row
 order for ties. Unknown fields and ambiguous duplicate parameters are rejected.
 
 ## Administrative operations
@@ -122,7 +123,7 @@ pagination, HTML escaping, missing/locked databases and both entry points.
 Browser checks use synthetic reviews only. A source or Pages release does not
 prove that a separate backend has been deployed or that hosting usage fell.
 
-Local verification: 29 synthetic SQLite/Flask tests passed in an isolated
+Initial-release local verification: 29 synthetic SQLite/Flask tests passed in an isolated
 dependency environment. Desktop/mobile browsing, filters, pagination, empty
 states and no-JavaScript operation passed; the fixture and existing data-file
 hashes were preserved. The pinned runtime dependency audit found no known
@@ -149,3 +150,14 @@ that setting. Semgrep, Bandit and TruffleHog completed successfully.
 Technical references: [SQLite parameter binding](https://docs.python.org/3.12/library/sqlite3.html),
 [Flask security guidance](https://flask.palletsprojects.com/en/stable/web-security/),
 and [Python runtime selection](https://devcenter.heroku.com/articles/python-runtimes).
+
+### Compatibility follow-up
+
+Two additional synthetic regressions exposed overly broad NOCASE matching:
+searching ID `a` also matched ID `A`, and a Unicode brand/country/keyword search
+missed a legacy-style capitalized record. The first release applied SQLite's
+ASCII NOCASE comparison to every equality filter. The correction retains
+exact ID/rating comparisons and Unicode case-insensitive descriptive text,
+including literal keyword searches. Existing record text remains unchanged.
+The full 31-test suite passes locally, including exact-ID search/edit/delete and
+Unicode brand/country/keyword checks. Hosted verification precedes promotion.

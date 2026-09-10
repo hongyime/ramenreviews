@@ -1,5 +1,11 @@
 # Ramen Reviews maintenance
 
+Compatibility correction prepared: the full 31-test suite passes with exact
+ID/rating comparisons and Unicode descriptive-text/keyword matching. Two new
+regressions first reproduced case-distinct IDs being merged and legacy Unicode
+matches being missed. Records are not rewritten. Verify the hosted runtime before
+promoting this follow-up; the earlier release evidence below remains historical.
+
 2026-09-10: Source `98bdf91` is published on main. The repaired API has 29 passing
 synthetic SQLite/Flask tests, a verified hosted Gunicorn startup and seven passing
 main workflows. Writes require bearer authentication; reads are paginated; both

@@ -250,6 +250,27 @@ class RamenTests(unittest.TestCase):
         with self.client.get('/static/css/prawn.css') as asset:
             self.assertIn('max-age=3600', asset.headers['Cache-Control'])
 
+    def test_identifier_filters_do_not_merge_case_distinct_ids(self):
+        for identifier in ['a', 'A']:
+            db.insertone(self.database, 'Ratings', {'ID': identifier, 'Brand': 'Case fixture'})
+        result = self.client.get('/api/searchsome', query_string={'ID': 'a'}).json['items']
+        self.assertEqual([row['ID'] for row in result], ['a'])
+        changed = self.client.put('/api/editsome', json={'ID': 'a', 'updaterating': '1'}, headers=AUTH)
+        self.assertEqual(changed.json['affected'], 1)
+        result = self.client.delete('/api/deletesome', json={'ID': 'a'}, headers=AUTH)
+        self.assertEqual(result.json['affected'], 1)
+        self.assertEqual([row['ID'] for row in self.client.get('/api/searchsome?ID=A').json['items']], ['A'])
+
+    def test_unicode_text_filters_preserve_legacy_case_matching(self):
+        # The old helpers capitalized these values before storage and filtering.
+        db.insertone(self.database, 'Ratings', {'ID': 'u', 'Brand': 'Äbc', 'Country': 'CÔTE', 'Type': 'Äpfel noodles'})
+        result = self.client.get('/api/searchsome', query_string={'brand': 'äbc', 'country': 'côte', 'keyword': 'äpfel'}).json['items']
+        self.assertEqual([row['ID'] for row in result], ['u'])
+        result = self.client.put('/api/editsome', json={'brand': 'äbc', 'updaterating': 'Unrated'}, headers=AUTH)
+        self.assertEqual(result.json['affected'], 1)
+        # Ratings, like IDs, retain exact text matching.
+        self.assertEqual(self.client.get('/api/searchsome?rating=unrated').json['items'], [])
+
 
 if __name__ == '__main__':
     unittest.main()

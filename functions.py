@@ -25,6 +25,10 @@ def dictfactory(cursor, row) -> dict:
     return {column[0]: value for column, value in zip(cursor.description, row)}
 
 
+def _casefold(value):
+    return value.casefold() if isinstance(value, str) else value
+
+
 def _table(tablename: str) -> str:
     if not isinstance(tablename, str) or tablename.casefold() != 'ratings':
         raise ValidationError('Only the Ratings table is supported.')
@@ -76,6 +80,7 @@ def _connection(databasename: str, *, create=False, write=False) -> Iterator[sql
     conn = sqlite3.connect(path.resolve().as_uri() + '?mode=' + mode, uri=True, timeout=2)
     conn.row_factory = dictfactory
     try:
+        conn.create_function('ramen_casefold', 1, _casefold, deterministic=True)
         with conn:
             yield conn
     finally:
@@ -91,12 +96,14 @@ def _where(values: Mapping, *, keyword=False) -> tuple[str, list[str]]:
         if name == 'Keyword':
             if not value.strip():
                 raise ValidationError('A keyword must contain text.')
-            escaped = value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
-            clauses.append('"Type" LIKE ? ESCAPE \'\\\'')
-            params.append('%' + escaped + '%')
-        else:
-            clauses.append(f'"{name}" = ? COLLATE NOCASE')
+            clauses.append('instr(ramen_casefold("Type"), ?) > 0')
+            params.append(value.casefold())
+        elif name in {'ID', 'Rating'}:
+            clauses.append(f'"{name}" = ? COLLATE BINARY')
             params.append(value)
+        else:
+            clauses.append(f'ramen_casefold("{name}") = ? COLLATE BINARY')
+            params.append(value.casefold())
     return ' AND '.join(clauses), params
 
 
