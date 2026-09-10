@@ -1,17 +1,20 @@
 # Ramen Reviews maintenance
 
-2026-09-10: Confirmed SQL interpolation, unauthenticated GET mutations, false
-success on deletion failure and missing Flask templates with synthetic fixtures.
-Diagnosis and implementation sequence are in README.md. The repair now has 29
-passing synthetic SQLite/Flask tests in a fresh Python 3.12 dependency environment.
-Both launchers share an app factory; writes require bearer authentication; reads
-are paginated; missing pages and their incorrect ignore rule are repaired.
-Desktop/mobile browser flows and no-JavaScript browsing pass with synthetic
-records. Runtime dependency audit found no known vulnerabilities. Six Bandit SQL
-construction warnings were reviewed against the identifier allowlists and bound
-values; narrow B608 annotations retain those decisions beside the queries.
+2026-09-10: Source `98bdf91` is published on main. The repaired API has 29 passing
+synthetic SQLite/Flask tests, a verified hosted Gunicorn startup and seven passing
+main workflows. Writes require bearer authentication; reads are paginated; both
+entry points share one application. Restored Prawn-style pages work on desktop,
+mobile and without JavaScript. GitHub Pages serves the reviewed documentation/CSS.
+All three existing DB/CSV files retain their original hashes.
 
-Next: finish browser/security review and hosted Gunicorn verification, then publish
-the reviewed source and documentation. All three existing CSV/DB file hashes match
-the starting checkout. GitHub Pages is documentation hosting; the retired Heroku API is not a
-verified production runtime. Do not run imports or writes against existing data.
+The runtime dependency audit found no known vulnerabilities; GitHub's dependency
+graph lists the new versions. Its 15 older open alert statuses still need a fresh
+check. Existing manually disabled CodeQL/default-unconfigured state was unchanged;
+Semgrep, Bandit and TruffleHog ran. Six B608 annotations document reviewed fixed
+identifiers and parameter binding, not a blanket security guarantee.
+
+Next: identify any current API backend before claiming a backend deployment or
+hosting savings. The former Heroku demo is retired and GitHub Pages hosts only
+documentation. Preserve the SQLite/CSV records; do not run imports, migrations or
+real mutations as smoke tests. See README.md for API compatibility changes,
+verification links and rollback limitations.

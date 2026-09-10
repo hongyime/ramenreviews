@@ -129,4 +129,23 @@ hashes were preserved. The pinned runtime dependency audit found no known
 vulnerabilities. Six Bandit SQL-construction warnings were reviewed: table,
 projection, sort and filter identifiers are allowlisted, and values are bound.
 Narrow B608 annotations document that review; it is not a claim that static
-analysis alone proves security. Hosted runtime and publication checks are next.
+analysis alone proves security.
+
+Source `98bdf91` is published on main. All seven triggered main workflows passed,
+including [Ramen API checks](https://github.com/hongyime/ramenreviews/actions/runs/34495920652).
+The hosted checks ran all 29 tests and started Gunicorn against synthetic data.
+The live GitHub Pages homepage, documentation path and CSS match the reviewed
+files; desktop/mobile navigation passed. The API backend remains unverified.
+Rollback: revert the reviewed source change without touching the database or CSVs.
+Restoring an old API version would also restore its unsafe write routes, so
+keep administrative access restricted during any rollback.
+
+The GitHub dependency graph contains the new pinned runtime versions. The separate
+alert-status snapshot at 15:31 UTC still listed 15 older requirements alerts; their
+automatic closure remains a follow-up, not a claimed result. CodeQL was already
+manually disabled with default setup unconfigured; this release did not change
+that setting. Semgrep, Bandit and TruffleHog completed successfully.
+
+Technical references: [SQLite parameter binding](https://docs.python.org/3.12/library/sqlite3.html),
+[Flask security guidance](https://flask.palletsprojects.com/en/stable/web-security/),
+and [Python runtime selection](https://devcenter.heroku.com/articles/python-runtimes).
