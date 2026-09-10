@@ -143,7 +143,7 @@ keep administrative access restricted during any rollback.
 
 The GitHub dependency graph contains the new pinned runtime versions. The separate
 alert-status snapshot at 15:31 UTC still listed 15 older requirements alerts; their
-automatic closure remains a follow-up, not a claimed result. CodeQL was already
+current automatic-closure status is available in the repository Security tab. CodeQL was already
 manually disabled with default setup unconfigured; this release did not change
 that setting. Semgrep, Bandit and TruffleHog completed successfully.
 
@@ -160,4 +160,6 @@ ASCII NOCASE comparison to every equality filter. The correction retains
 exact ID/rating comparisons and Unicode case-insensitive descriptive text,
 including literal keyword searches. Existing record text remains unchanged.
 The full 31-test suite passes locally, including exact-ID search/edit/delete and
-Unicode brand/country/keyword checks. Hosted verification precedes promotion.
+Unicode brand/country/keyword checks. [Hosted verification](https://github.com/hongyime/ramenreviews/actions/runs/34498771355)
+passed all 31 tests and the real Gunicorn smoke check for correction
+`dc1be37`. The correction changes filtering, not stored records.
