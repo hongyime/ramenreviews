@@ -1,0 +1,8 @@
+{% extends 'base.html' %}{% block title %}Help{% endblock %}{% block content %}
+<p class="eyebrow">FIND YOUR WAY</p><h1>Help with reviews.</h1>
+{% if error %}<div class="notice" role="alert"><h2>We couldn't load those reviews.</h2><p>{{ error }}</p><a href="{{ url_for('display') }}">Return to browsing</a></div>{% endif %}
+<div class="prose"><h2>Finding a review</h2><p>Brand and country filters match the full recorded name, without requiring the same letter case. A flavour keyword searches within the review type. Clear a field to leave it out of the search.</p>
+<h2>No matches?</h2><p>Try a shorter flavour keyword or remove a filter. The shelf shows existing reviews; an empty result does not create or delete anything.</p>
+<h2>Ratings and missing details</h2><p>Ratings are shown as recorded. Some reviews have no rating or other missing details. Sorting follows the stored text, with review order used to break ties.</p>
+<h2>Using the API</h2><p>The <a href="{{ url_for('docs') }}">API guide</a> covers pagination, request fields and the protected administrative operations.</p></div>
+{% endblock %}

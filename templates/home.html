@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block content %}
+<section class="intro"><p class="eyebrow">THE RAMEN SHELF</p><h1>Find your<br>next bowl.</h1>
+<p class="lead">Explore reviews by brand, country and flavour. Compare the packaging and rating before choosing what to try.</p>
+<a class="button" href="{{ url_for('display') }}">Browse reviews <span aria-hidden="true">↗</span></a></section>
+<section class="guide"><h2>A label for every bowl</h2><dl><div><dt>Brand &amp; type</dt><dd>Find a familiar favourite or search for a flavour.</dd></div><div><dt>Country &amp; package</dt><dd>Compare where it comes from and how it is served.</dd></div><div><dt>Rating</dt><dd>Use the recorded review score to explore your options.</dd></div></dl></section>
+{% endblock %}

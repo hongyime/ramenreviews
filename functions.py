@@ -1,401 +1,201 @@
+"""Validated SQLite helpers. Importing this module never opens a database."""
+from contextlib import contextmanager
 import csv
-import json
+from pathlib import Path
 import sqlite3
- 
-def capitalisewords(string):
-    list_of_words = string.split(" ")
+from typing import Iterator, Mapping
 
-    for word in list_of_words:
-        list_of_words[list_of_words.index(word)] = word.capitalize()
-
-    return " ".join(list_of_words)
-
-
-def dictfactory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        # col[0] is the column name
-        d[col[0]] = row[idx]
-    return d
+COLUMNS = ('ID', 'Country', 'Brand', 'Type', 'Package', 'Rating')
+DEFAULT_LIMIT = 50
+MAX_LIMIT = 200
+MAX_OFFSET = 100_000
+MAX_VALUE_LENGTH = 4096
 
 
-def createone(databasename, tablename):   
-    createtable = f'''
-    CREATE TABLE IF NOT EXISTS {tablename}
-        (
-            ID 'TEXT',
-            Country TEXT,
-            Brand TEXT,
-            Type TEXT,
-            Package TEXT,
-            Rating TEXT
-        )
-    '''
-
-    conn = sqlite3.connect(f'{databasename}.db')
-    cur = conn.cursor()
-    try:
-        cur.execute(createtable)
-        conn.commit()
-        conn.close()
-        print("Created table and file")
-        return True
-    except Exception as e:
-        print(e)
-        return False
+class ValidationError(ValueError):
+    """A request cannot be translated into a safe, unambiguous operation."""
 
 
-def insertall(databasename, csvname):
-    insertdata = f'''
-    INSERT INTO {databasename}
-        (
-            ID,
-            Country,
-            Brand,
-            Type,
-            Package,
-            Rating
-        )
-    VALUES(?, ?, ?, ?, ?, ?)
-    '''
-    data = []
-    with open(f'{csvname}.csv','r',encoding='utf-8') as f:
-        for x in csv.DictReader(f):
-            data.append(x)
-
-    conn = sqlite3.connect(f'{databasename}.db')
-    cur = conn.cursor()
-    
-    for d in data:
-        try:
-            cur.execute(insertdata,(d['ID'],d['Country'],d['Brand'],d['Type'],d['Package'],d['Rating']))
-            print(f'Inserted {d}')
-        except Exception as e:
-            print(e)
-            return False
-    conn.commit()
-    conn.close()
-    return True
+def capitalisewords(value: str) -> str:
+    """Retained for callers of the old utility; storage preserves input text."""
+    return ' '.join(word.capitalize() for word in value.split(' '))
 
 
-def insertone(databasename, tablename, dic):
-    insertkeys = ['ID','Country','Brand','Type','Package','Rating']
-    columns = ()
-    values = ()
-    
-    for key,value in dic.items():
-        
-        if key != 'ID':
-            key = capitalisewords(key)
-
-        if key not in insertkeys:
-            print(f'{key} is a wrong column.')
-        
-        else:
-            if key == 'Country':
-                value = str(value.upper())
-            elif key == 'Rating':
-                value = str(value)
-            elif key == 'ID':
-                value = str(value)
-            else:
-                value = str(capitalisewords(value))
-                
-            values += (value,)
-            columns += (key,)                                
-
-    insertonerecord = f'''
-    INSERT INTO {tablename} {columns}
-    VALUES {values};
-    '''
-    
-    conn = sqlite3.connect(f'{databasename}.db')
-    cur = conn.cursor()
-    cur.execute(insertonerecord)
-    print(f'Inserted 1 record')
-    conn.commit()
-    conn.close()
-    return True
+def dictfactory(cursor, row) -> dict:
+    return {column[0]: value for column, value in zip(cursor.description, row)}
 
 
-def deleteall(databasename, tablename):
-    deleteallrecords = f'''
-    DELETE FROM {tablename}
-    '''
-    
-    countrecords = f'''
-    SELECT COUNT(*)
-    FROM {tablename}
-    '''
-    
-    conn = sqlite3.connect(f'{databasename}.db')
-    cur = conn.cursor()
-    count = cur.execute(countrecords).fetchone()[0]
-    print(f'Deleting {count} records')
-    cur.execute(deleteallrecords)
-    print('All records deleted')
-    conn.commit()
-    conn.close()
-    return True
-    
-
-def deletesome(databasename, tablename, dic):
-    searchkeys = ['ID','Country','Brand','Type','Package','Rating']
-    searchconditions = []
-    
-    for key,value in dic.items():
-        if key != 'ID':
-            key = capitalisewords(key)
-            
-        if key not in searchkeys:
-            print(f'{key} is a wrong search condition.')
-            continue
-        
-        else:
-            if key == 'Country':
-                value = value.upper()
-            elif key == 'Rating':
-                value = str(value)
-            elif key == 'ID':
-                value = str(value)
-            else:
-                value = capitalisewords(value)
-                
-            searchcondition = f'{key} = "{value}"'
-            searchconditions.append(searchcondition)
-            
-
-    whereconditions = ' AND '.join(searchconditions)
-
-    if whereconditions == '':
-        print('Wrong search conditions given.')
-        return False
-
-    else:
-        print(f'Search conditions: {whereconditions}')
-        
-        countrecords = f'''
-        SELECT COUNT(*)
-        FROM {tablename}
-        WHERE {whereconditions}
-        '''
-        
-        deletesomerecords = f'''
-        DELETE FROM {tablename}
-        WHERE {whereconditions}
-        '''
-        
-        conn = sqlite3.connect(f'{databasename}.db')
-        cur = conn.cursor()
-        count = cur.execute(countrecords).fetchone()[0]
-        print(f'Deleting {count} records')
-        cur.execute(deletesomerecords)
-        print('Some records deleted')
-        conn.commit()
-        conn.close()
-        return True
+def _table(tablename: str) -> str:
+    if not isinstance(tablename, str) or tablename.casefold() != 'ratings':
+        raise ValidationError('Only the Ratings table is supported.')
+    return '"Ratings"'
 
 
-
-def updatesome(databasename, tablename, dic):
-    searchkeys = ['Country','Brand','Type','Package','Rating']
-    updatekeys = ['Updatecountry','Updatebrand','Updatetype','Updatepackage','Updaterating']
-    searchconditions = []
-    updateconditions = []
-    
-    for key,value in dic.items():
-        if key != 'ID':
-            key = capitalisewords(key)
-
-        if key not in searchkeys and key not in updatekeys:
-            print(f'{key} is a wrong search condition.')
-            continue
-        
-        else:
-            #for search conditions
-            if key in searchkeys:
-                if key == 'Country':
-                    value = value.upper()
-                elif key == 'Rating':
-                    value = float(value)
-                else:
-                    value = capitalisewords(value)
-                    
-                searchcondition = f'{key} = "{value}"'
-                searchconditions.append(searchcondition)
-                continue
-            
-            if key in updatekeys:
-                if key == 'Updatecountry':
-                    value = value.upper()
-                elif key == 'Updaterating':
-                    value = str(value)
-                else:
-                    value = capitalisewords(value)
-
-                key = key.replace('Update', '', 1)
-                updatecondition = f'{key} = "{value}"'
-                updateconditions.append(updatecondition)
-                    
-            
-
-    whereconditions = ' AND '.join(searchconditions)
-    setconditions = ', '.join(updateconditions)
-
-    if whereconditions == '':
-        print('Wrong search conditions given.')
-        return False
-
-    else:
-        print(f'Search conditions: {whereconditions}')
-        print(f'Update conditions: {setconditions}')
-        
-        countrecords = f'''
-        SELECT COUNT(*)
-        FROM {tablename}
-        WHERE {whereconditions}
-        '''
-        
-        updatesomerecords = f'''        
-        UPDATE {tablename}
-        SET {setconditions}
-        WHERE {whereconditions}
-        '''
-
-        conn = sqlite3.connect(f'{databasename}.db')
-        cur = conn.cursor()
-        count = cur.execute(countrecords).fetchone()[0]
-        print(f'Updating {count} records')
-        cur.execute(updatesomerecords)
-        print('Some records updated')
-        conn.commit()
-        conn.close()
-        return True
+def _value(value) -> str:
+    if value is None or isinstance(value, (dict, list, tuple, bool)):
+        raise ValidationError('Review values must be text or numbers, not null.')
+    text = str(value)
+    if len(text) > MAX_VALUE_LENGTH or '\x00' in text:
+        raise ValidationError('A review value is too long or contains a null character.')
+    return text
 
 
-
-def searchsome(databasename, tablename, dic):
-    searchkeys = ['ID','Country','Brand','Type','Package','Rating']
-    searchconditions = []
-    sortcondition = ''
-
-    if 'Sortby' not in dic.keys() and 'sortby' not in dic.keys():
-        print('No sort condition given.')
-        return False
-        
-    else:
-        
-        for key,value in dic.items():
-            if key != 'ID':
-                key = capitalisewords(key)
-
-            if key == 'Sortby':
-                value = capitalisewords(value)
-                
-                if value.upper() == 'ID':
-                    sortcondition += value.upper()
-                elif value not in searchkeys:
-                    print('Wrong sort condition given.')
-                    return False
-                else:
-                    sortcondition += value
-                continue
-
-            if key == 'Keyword':
-                value = capitalisewords(value)
-                searchcondition = f"Type LIKE '%{value}%'"
-                searchconditions.append(searchcondition)
-                continue
-                            
-            if key not in searchkeys:
-                print(f'{key} is a wrong search condition.')
-                continue
-            
-            else:
-                if key == 'Country':
-                    value = value.upper()
-                elif key == 'Rating':
-                    value = str(value)
-                elif key == 'ID':
-                    value = str(value)
-                else:
-                    value = capitalisewords(value)
-                    
-                searchcondition = f"{key} = '{value}'"
-                searchconditions.append(searchcondition)
-
-    whereconditions = ' AND '.join(searchconditions)
+def _fields(values: Mapping, *, extra=()) -> dict:
+    if not isinstance(values, Mapping):
+        raise ValidationError('Supply an object containing review fields.')
+    names = {name.casefold(): name for name in (*COLUMNS, *extra)}
+    normalized = {}
+    for key, value in values.items():
+        name = names.get(key.casefold()) if isinstance(key, str) else None
+        if name is None:
+            raise ValidationError('Unknown review field.')
+        if name in normalized:
+            raise ValidationError('Supply each review field only once.')
+        normalized[name] = _value(value)
+    return normalized
 
 
-    if whereconditions == '':
-        print('Wrong search conditions given.')
-        return False
-
-    else:
-
-        print(f'Search conditions: {whereconditions}')
-        print(f'Sort conditions: {sortcondition}')
-
-            
-        countrecords = f'''
-        SELECT COUNT(*)
-        FROM {tablename}
-        WHERE {whereconditions}
-        '''
-
-        searchsomerecords = f'''
-        SELECT *
-        FROM {tablename}
-        WHERE {whereconditions}
-        ORDER BY {sortcondition} ASC
-        '''
-        
-        conn = sqlite3.connect(f'{databasename}.db')
-        cur = conn.cursor()
-        count = cur.execute(countrecords).fetchone()[0]
-        print(f'Found {count} records')
-        
-        conn.row_factory = dictfactory
-        cur = conn.cursor()
-        records = cur.execute(searchsomerecords).fetchall()
-        conn.commit()
-        conn.close()
-        return records #list of dicts
+def pagination(limit=DEFAULT_LIMIT, offset=0) -> tuple[int, int]:
+    def integer(value):
+        text = str(value)
+        if not text.isascii() or not text.isdecimal() or len(text) > 6:
+            raise ValidationError('Pagination values must be non-negative integers.')
+        return int(text)
+    limit, offset = integer(limit), integer(offset)
+    if not 1 <= limit <= MAX_LIMIT or offset > MAX_OFFSET:
+        raise ValidationError('Use a limit from 1 to 200 and an offset up to 100000.')
+    return limit, offset
 
 
-
-def selectall(databasename, tablename):
-    print('Returning all records in table')
-
-    selectallrecords = f'''
-    SELECT *
-    FROM {tablename}
-    '''
-    
-    conn = sqlite3.connect(f'{databasename}.db')
-    cur = conn.cursor()
-    count = len(cur.execute(selectallrecords).fetchall())
-    print(f'Found {count} records')
-    
+@contextmanager
+def _connection(databasename: str, *, create=False, write=False) -> Iterator[sqlite3.Connection]:
+    path = Path(databasename)
+    if path.suffix != '.db':
+        path = Path(str(path) + '.db')
+    mode = 'rwc' if create else ('rw' if write else 'ro')
+    conn = sqlite3.connect(path.resolve().as_uri() + '?mode=' + mode, uri=True, timeout=2)
     conn.row_factory = dictfactory
-    cur = conn.cursor()
-    records = cur.execute(selectallrecords).fetchall()
-    conn.commit()
-    conn.close()
-    return records #list of dicts
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
+def _where(values: Mapping, *, keyword=False) -> tuple[str, list[str]]:
+    fields = _fields(values, extra=('Keyword',) if keyword else ())
+    if not fields:
+        raise ValidationError('Supply at least one filter.')
+    clauses, params = [], []
+    for name, value in fields.items():
+        if name == 'Keyword':
+            if not value.strip():
+                raise ValidationError('A keyword must contain text.')
+            escaped = value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+            clauses.append('"Type" LIKE ? ESCAPE \'\\\'')
+            params.append('%' + escaped + '%')
+        else:
+            clauses.append(f'"{name}" = ? COLLATE NOCASE')
+            params.append(value)
+    return ' AND '.join(clauses), params
 
-if __name__ == "__main__":
-##    createone('ratings','Ratings')
-##    insertall('ratings','ratings')
-    print(selectall('ratings','Ratings'))
-##    insertone('ratings','Ratings', {'brand':'Brand xxxx','country':'XXXX','ID':'2222222222222222'})
-##    searchsome('ratings','Ratings', {'brand':'Brand A','country':'USA','Sortby':'country'})
-##    searchsome('ratings','Ratings', {'country':'USA','sortby':'country','keyword':'instant'})
-##    searchsome('ratings','Ratings', {'keyword':'seaweed','sortby':'id'})
-##    updatesome('ratings','Ratings', {'brand':'Brand M','updatetype':'Hello world','updaterating':'0'})
-##    deletesome('ratings','Ratings', {'country':'USA','package':'pack'})
-##    deleteall('ratings','Ratings')    
+
+def createone(databasename: str, tablename: str) -> bool:
+    table = _table(tablename)
+    columns = ', '.join(f'"{column}" TEXT' for column in COLUMNS)
+    with _connection(databasename, create=True, write=True) as conn:
+        conn.execute(f'CREATE TABLE IF NOT EXISTS {table} ({columns})')
+    return True
 
 
+def insertone(databasename: str, tablename: str, dic: Mapping) -> int:
+    table, fields = _table(tablename), _fields(dic)
+    if not fields:
+        raise ValidationError('Supply at least one review field.')
+    columns = ', '.join(f'"{name}"' for name in fields)
+    placeholders = ', '.join('?' for _ in fields)
+    with _connection(databasename, write=True) as conn:
+        # Identifiers come only from _table/_fields; every value is bound.
+        return conn.execute(f'INSERT INTO {table} ({columns}) VALUES ({placeholders})', tuple(fields.values())).rowcount  # nosec B608
+
+
+def insertall(databasename: str, csvname: str, tablename='Ratings') -> int:
+    """Append a bounded CSV atomically. Explicit repeat imports append again."""
+    table = _table(tablename)
+    path = Path(csvname)
+    if path.suffix != '.csv':
+        path = Path(str(path) + '.csv')
+    if path.stat().st_size > 8 * 1024 * 1024:
+        raise ValidationError('CSV imports are limited to 8 MiB.')
+    columns = ', '.join(f'"{name}"' for name in COLUMNS)
+    # Both the table and projection are fixed allowlisted identifiers.
+    statement = f'INSERT INTO {table} ({columns}) VALUES (?, ?, ?, ?, ?, ?)'  # nosec B608
+    count = 0
+    with path.open(encoding='utf-8-sig', newline='') as source:
+        reader = csv.DictReader(source, strict=True)
+        if reader.fieldnames is None or len(reader.fieldnames) != len(COLUMNS) or set(reader.fieldnames) != set(COLUMNS):
+            raise ValidationError('The CSV header must contain the six review columns once each.')
+        with _connection(databasename, write=True) as conn:
+            for row in reader:
+                count += 1
+                if count > 10_000:
+                    raise ValidationError('CSV imports are limited to 10000 rows.')
+                fields = _fields(row)
+                conn.execute(statement, tuple(fields[name] for name in COLUMNS))
+    return count
+
+
+def deleteall(databasename: str, tablename: str) -> int:
+    table = _table(tablename)
+    with _connection(databasename, write=True) as conn:
+        # _table permits Ratings only.
+        return conn.execute(f'DELETE FROM {table}').rowcount  # nosec B608
+
+
+def deletesome(databasename: str, tablename: str, dic: Mapping) -> int:
+    table = _table(tablename)
+    where, params = _where(dic)
+    with _connection(databasename, write=True) as conn:
+        # _where builds clauses from allowlisted columns and binds all values.
+        return conn.execute(f'DELETE FROM {table} WHERE {where}', params).rowcount  # nosec B608
+
+
+def updatesome(databasename: str, tablename: str, dic: Mapping) -> int:
+    table = _table(tablename)
+    fields = _fields(dic, extra=tuple('Update' + name.lower() for name in COLUMNS if name != 'ID'))
+    filters = {key: value for key, value in fields.items() if not key.startswith('Update')}
+    updates = {key[6:].capitalize(): value for key, value in fields.items() if key.startswith('Update')}
+    where, params = _where(filters)
+    if not updates:
+        raise ValidationError('Supply at least one update field.')
+    assignments = ', '.join(f'"{name}" = ?' for name in updates)
+    with _connection(databasename, write=True) as conn:
+        # _fields/_where constrain identifiers; assignments and filters are bound.
+        return conn.execute(f'UPDATE {table} SET {assignments} WHERE {where}', [*updates.values(), *params]).rowcount  # nosec B608
+
+
+def read_page(databasename: str, tablename: str, filters=None, *, sortby='ID', limit=DEFAULT_LIMIT, offset=0) -> dict:
+    table = _table(tablename)
+    limit, offset = pagination(limit, offset)
+    sort = next((column for column in COLUMNS if column.casefold() == str(sortby).casefold()), None)
+    if sort is None:
+        raise ValidationError('Choose a review column to sort by.')
+    where, params = _where(filters, keyword=True) if filters else ('1', [])
+    columns = ', '.join(f'"{name}"' for name in COLUMNS)
+    with _connection(databasename) as conn:
+        # Projection and sort use COLUMNS; filters, limit and offset are bound.
+        records = conn.execute(f'SELECT {columns} FROM {table} WHERE {where} ORDER BY "{sort}" COLLATE NOCASE ASC, rowid ASC LIMIT ? OFFSET ?', [*params, limit + 1, offset]).fetchall()  # nosec B608
+    has_more = len(records) > limit
+    return {'items': records[:limit], 'limit': limit, 'offset': offset, 'has_more': has_more,
+            'next_offset': offset + limit if has_more and offset + limit <= MAX_OFFSET else None}
+
+
+def searchsome(databasename: str, tablename: str, dic: Mapping, *, limit=DEFAULT_LIMIT, offset=0) -> list[dict]:
+    fields = _fields(dic, extra=('Sortby', 'Keyword'))
+    sort = fields.pop('Sortby', 'ID')
+    _where(fields, keyword=True)
+    return read_page(databasename, tablename, fields, sortby=sort, limit=limit, offset=offset)['items']
+
+
+def selectall(databasename: str, tablename: str, *, limit=DEFAULT_LIMIT, offset=0) -> list[dict]:
+    return read_page(databasename, tablename, limit=limit, offset=offset)['items']

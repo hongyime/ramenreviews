@@ -1,1 +1,1 @@
-web: gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 main:app
+web: gunicorn --workers 1 --threads 4 --timeout 30 main:app

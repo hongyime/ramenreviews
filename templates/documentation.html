@@ -1,13 +1,6 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Browse ramen reviews by brand, country and flavour.">
-<title>API guide · The Prawn Projects</title>
-<link rel="stylesheet" href="static/css/prawn.css?v=20260910"></head>
-<body><a class="skip" href="#main">Skip to content</a><div class="shell">
-<header><a class="brand" href="./">RAMEN REVIEWS</a><nav aria-label="Main navigation"><a href="#main">API guide</a><a href="#running-locally">Run locally</a></nav></header>
-<main id="main">
+{% extends 'base.html' %}{% block title %}API guide{% endblock %}{% block content %}
 <p class="eyebrow">FOR DEVELOPERS</p><h1>The review API.</h1>
-<p class="public-note">This is the API documentation hosted on GitHub Pages. To browse reviews or call these endpoints, run the application locally or use a separately hosted backend.</p>
+{% if static_site %}<p class="public-note">This is the API documentation hosted on GitHub Pages. To browse reviews or call these endpoints, run the application locally or use a separately hosted backend.</p>{% endif %}
 <div class="prose"><p>Read reviews without a token. Every response is JSON. Public browsing and search never modify records.</p>
 <h2>Browse and search</h2><pre><code>GET /api/selectall?limit=50&amp;offset=0
 GET /api/searchsome?country=SG&amp;keyword=seaweed&amp;sortby=Brand</code></pre>
@@ -26,6 +19,4 @@ GET /api/searchsome?country=SG&amp;keyword=seaweed&amp;sortby=Brand</code></pre>
 <h2>Errors</h2><p>400: invalid input. 401: missing or invalid token. 404: no matching rows for an edit or filtered deletion. 405: wrong HTTP method. 413: request too large. 503: storage unavailable or administrative writes unconfigured. Database failures are never reported as successful mutations.</p>
 <h2 id="running-locally">Running locally</h2><pre><code>python -m pip install -r requirements.txt
 python main.py</code></pre><p>Use Python 3.12. Both <code>main:app</code> and <code>app:app</code> expose the same application. Production hosting needs persistent storage and HTTPS. The GitHub Pages site is documentation; it does not run this API.</p></div>
-</main>
-<footer><span>Part of The Prawn Projects</span><a href="https://github.com/hongyime/ramenreviews">Source code</a></footer>
-</div></body></html>
+{% endblock %}

@@ -1,0 +1,4 @@
+# Decisions
+
+- 2026-09-10: Reproduced query injection, unauthenticated GET deletion, false-success errors and missing templates using synthetic records. Repair the API and browsing flow together; preserve existing SQLite/CSV records and distinguish documentation publication from backend deployment.
+- 2026-09-10: Twenty-nine synthetic tests pass with the repaired API and pinned Flask/Gunicorn environment. Corrected the templates ignore rule so the restored UI reaches clean checkouts. Database/CSV bytes remain unchanged; backend hosting and measured platform savings are unverified.

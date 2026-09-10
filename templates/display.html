@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block title %}Browse ramen{% endblock %}{% block content %}
+<p class="eyebrow">THE RAMEN SHELF</p><h1>Browse reviews.</h1>
+<form action="{{ url_for('display') }}" method="get" class="filters" aria-label="Filter reviews">
+<label>Brand<input name="brand" value="{{ filters.get('brand', '') }}" maxlength="4096" placeholder="Any brand"></label>
+<label>Country<input name="country" value="{{ filters.get('country', '') }}" maxlength="4096" placeholder="Any country"></label>
+<label>Flavour keyword<input name="keyword" value="{{ filters.get('keyword', '') }}" maxlength="4096" placeholder="e.g. seaweed"></label>
+<label>Sort by<select name="sortby">{% for name in ['ID', 'Country', 'Brand', 'Type', 'Package', 'Rating'] %}<option value="{{ name }}" {% if filters.get('sortby', 'ID') == name %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+<div class="filter-actions"><button class="button" type="submit">Find reviews</button><a href="{{ url_for('display') }}">Clear filters</a></div>
+</form>
+{% if page['items'] %}<p class="result-count">Showing {{ page.offset + 1 }}–{{ page.offset + page['items']|length }}{% if page.has_more %} · More reviews available{% endif %}</p>
+<div class="reviews">{% for review in page['items'] %}<article class="review"><div class="review-heading"><p class="eyebrow">{{ review.Brand or 'Brand not recorded' }}</p><span class="rating" aria-label="Rating">{{ review.Rating or 'Unrated' }}</span></div><h2>{{ review.Type or 'Type not recorded' }}</h2><dl><div><dt>Country</dt><dd>{{ review.Country or 'Not recorded' }}</dd></div><div><dt>Package</dt><dd>{{ review.Package or 'Not recorded' }}</dd></div><div><dt>Review ID</dt><dd>{{ review.ID or 'Not recorded' }}</dd></div></dl></article>{% endfor %}</div>
+{% else %}<section class="empty"><h2>No reviews match.</h2><p>Try a different brand, country or flavour, or clear the filters to browse the shelf.</p><a href="{{ url_for('display') }}">Browse all reviews</a></section>{% endif %}
+<nav class="pagination" aria-label="Review pages">{% if previous %}<a class="button secondary" href="{{ previous }}">Previous page</a>{% endif %}{% if following %}<a class="button" href="{{ following }}">Next page</a>{% elif page.has_more %}<p>Narrow your filters to see more matching reviews.</p>{% endif %}</nav>
+{% endblock %}

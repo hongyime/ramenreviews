@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Browse ramen reviews by brand, country and flavour.">
+<title>{% block title %}Ramen Reviews{% endblock %} · The Prawn Projects</title>
+<link rel="stylesheet" href="{% if static_site %}static/css/prawn.css?v=20260910{% else %}{{ url_for('static', filename='css/prawn.css', v='20260910') }}{% endif %}"></head>
+<body><a class="skip" href="#main">Skip to content</a><div class="shell">
+<header><a class="brand" href="{% if static_site %}./{% else %}{{ url_for('home') }}{% endif %}">RAMEN REVIEWS</a><nav aria-label="Main navigation">{% if static_site %}<a href="#main">API guide</a><a href="#running-locally">Run locally</a>{% else %}<a href="{{ url_for('display') }}">Browse</a><a href="{{ url_for('docs') }}">API guide</a><a href="{{ url_for('help_page') }}">Help</a>{% endif %}</nav></header>
+<main id="main">{% block content %}{% endblock %}</main>
+<footer><span>Part of The Prawn Projects</span><a href="https://github.com/hongyime/ramenreviews">Source code</a></footer>
+</div></body></html>
